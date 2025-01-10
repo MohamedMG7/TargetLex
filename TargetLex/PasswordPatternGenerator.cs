@@ -58,7 +58,7 @@ namespace TargetLex
             {'k', new[] {"|<", "|{", "|(", "|X", "|c", "￡", "ķ"}},
             {'l', new[] {"1", "7", "|_", "|", "£", "¬", "ł"}},
             {'m', new[] {"/\\/\\", "|\\/|", "em", "|v|", "^^", "nn", "ɱ"}},
-            {'n', new[] {"|\\|", "/\\/", "η", "^/", "[\]", "<\\>", "ñ"}},
+            {'n', new[] {"|\\|", "/\\/", "η", "^/", "<\\>", "ñ"}},
             {'o', new[] {"0", "()", "oh", "[]", "¤", "Ø", "ö", "ø"}},
             {'p', new[] {"|°", "|>", "|*", "|D", "þ", "|º", "ρ"}},
             {'q', new[] {"(_,)", "9", "()_", "2", "¶", "Ø", "q̊"}},
@@ -78,8 +78,11 @@ namespace TargetLex
             WordList = new List<string>();
         }
 
-        public List<string> BasicPatterns(string name, string nickname, string birthyear, string birthmonth, string birthday)
+        public PasswordPatternGenerator BasicPatterns(string name, string nickname, string birthdate)
         {
+            
+            //string birthyear, string birthmonth, string birthday
+
             // Shortened versions of date components
             string shortBirthYear = birthyear.Length > 2 ? birthyear.Substring(2) : birthyear;
             string shortBirthMonth = birthmonth.TrimStart('0');
@@ -190,10 +193,10 @@ namespace TargetLex
             {
                 WordList.Add(season + birthyear);
                 WordList.Add(season + shortBirthYear);
-                WordList.Add(season.Capitalize() + birthyear);
+                WordList.Add(season.ToUpper() + birthyear);
             }
 
-            return WordList.Distinct().ToList(); 
+            return this; 
         }
 
         private string ReverseString(string input)
@@ -213,37 +216,77 @@ namespace TargetLex
             return new string(mixed);
         }
 
-        private PasswordPatternGenerator LeetSpeak(bool isAdvanced,List<string> Wordlist) {
-            List<string> leetwords = new List<string>();
-            var map = isAdvanced ? AdvancedLeetspeakMap : BasicLeetspeakMap;
-
-            foreach (string word in WordList) { 
-                
-            }
-
-            return this;
-        }
-
-        private List<string> GenerateLeetVariations(string input, Dictionary<char, string[]> leetMap)
+        public PasswordPatternGenerator LeetSpeak(bool isAdvanced)
         {
-            var results = new List<string> { input };
+            // Select the leet map (basic or advanced)
+            Dictionary<char, string[]> map = isAdvanced ? AdvancedLeetspeakMap : BasicLeetspeakMap;
 
-            foreach (var charMap in leetMap)
+            // Temporary list to store leet variations
+            List<string> leetwords = new List<string>();
+
+            // Process each word in the WordList
+            foreach (string word in WordList)
             {
-                if (input.Contains(charMap.Key))
+                // Generate variations by replacing each character with its leet equivalents
+                foreach (var charMap in map)
                 {
-                    var currentResults = new List<string>(results);
-                    foreach (var replacement in charMap.Value)
+                    if (word.Contains(charMap.Key)) // Check if the word has this character
                     {
-                        foreach (var existingString in currentResults)
+                        foreach (var replacement in charMap.Value)
                         {
-                            results.Add(existingString.Replace(charMap.Key.ToString(), replacement));
+                            // Replace character with each leet substitution
+                            leetwords.Add(word.Replace(charMap.Key.ToString(), replacement));
                         }
                     }
                 }
             }
 
+            // Add the generated variations to WordList and remove duplicates
+            WordList.AddRange(leetwords.Distinct());
+
+            return this; // Enable method chaining
+        }
+
+        private List<string> GenerateLeetVariations(string input, Dictionary<char, string[]> leetMap)
+        {
+            // Start with the original input word as the base
+            List<string> results = new List<string> { input };
+
+            // Loop through each character in the input word
+            for (int i = 0; i < input.Length; i++)
+            {
+                char currentChar = input[i];
+
+                // Check if the character has leet replacements
+                if (leetMap.ContainsKey(currentChar))
+                {
+                    // Temporary list to hold new variations generated in this step
+                    List<string> newResults = new List<string>();
+
+                    // Iterate through all variations generated so far
+                    foreach (var word in results)
+                    {
+                        // Replace the character at position 'i' with each leet replacement
+                        foreach (var replacement in leetMap[currentChar])
+                        {
+                            string variation = word.Substring(0, i) + replacement + word.Substring(i + 1);
+                            newResults.Add(variation);
+                        }
+                    }
+
+                    // Add the new variations to the results list
+                    results.AddRange(newResults);
+                }
+            }
+
+            // Return distinct variations to avoid duplicates
             return results.Distinct().ToList();
+
+        }
+
+        public List<string> GetPatterns()
+        {
+            return WordList.Distinct().ToList();
         }
     }
 }

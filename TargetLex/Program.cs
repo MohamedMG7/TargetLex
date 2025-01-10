@@ -15,7 +15,17 @@ namespace TargetLex
         static void RunOptions(Options opts)
         {
             PasswordPatternGenerator generator = new PasswordPatternGenerator();
-            List<string> wordlist = generator.BasicPatterns(opts.Target_Name,opts.Target_Nickname,opts.Target_Birthyear,opts.Target_BirthMonth,opts.Target_BirthDay);
+            List<string> wordlist;
+            if (opts.AdvancedLeetspeakOption)
+            {
+                wordlist = generator.BasicPatterns(opts.Target_Name, opts.Target_Nickname, opts.Target_Birthdate).LeetSpeak(true).GetPatterns();
+            } else if (opts.LeetspeakOption) {
+                wordlist = generator.BasicPatterns(opts.Target_Name, opts.Target_Nickname, opts.Target_Birthdate).LeetSpeak(false).GetPatterns();
+            }
+            else {
+                wordlist = generator.BasicPatterns(opts.Target_Name, opts.Target_Nickname, opts.Target_Birthdate).GetPatterns();
+            }
+            
             GeneratingEffect(wordlist);
             writeToTextfile(opts.OutputFileName,wordlist);
         }
@@ -41,13 +51,30 @@ namespace TargetLex
 
         }
 
-        static void GeneratingEffect(List<string> wordList) {
+        //static void GeneratingEffect(List<string> wordList) {
+        //    foreach (string word in wordList)
+        //    {
+        //        Console.Write("\r" + word + " ");
+        //        Thread.Sleep(1);
+        //    }
+        //    Console.Write("");
+        //    Console.Write("\r" + "Wordlist Ready");
+        //}
+
+        static void GeneratingEffect(List<string> wordList)
+        {
+            int maxLength = 0; // Track max length of printed word
+
+            // Display progress by iterating through each word
             foreach (string word in wordList)
             {
-                Console.Write("\r" + word + " ");
-                Thread.Sleep(10);
+                maxLength = Math.Max(maxLength, word.Length); // Update max length
+                Console.Write("\r" + word + " "); // " " for the noisy effect 
+                Thread.Sleep(1);
             }
-            Console.Write("\r" + "Wordlist Ready");
+
+            // Final message
+            Console.Write("\r" + "Wordlist Ready".PadRight(maxLength)); // Clear remaining characters
         }
 
     }
