@@ -45,6 +45,11 @@ namespace TargetLex
                 NormalizeNumber(opts.TargetBirthDay),
                 LeetMode.Parse(opts.LeetMode));
 
+            if (!string.IsNullOrWhiteSpace(opts.CheckPassword))
+            {
+                return RunPasswordCheck(opts.CheckPassword, candidates);
+            }
+
             var filtered = ApplyFilters(candidates, opts).ToList();
             var outputPath = WriteToTextFile(opts.OutputDirectory, opts.OutputFileName, filtered);
 
@@ -122,7 +127,17 @@ namespace TargetLex
                 errors.Add("--max-results must be greater than zero.");
             }
 
-            if (string.IsNullOrWhiteSpace(opts.OutputFileName) || !SafeFileName.IsMatch(opts.OutputFileName))
+            if (opts.CheckPassword is not null && string.IsNullOrWhiteSpace(opts.CheckPassword))
+            {
+                errors.Add("--check-password cannot be empty.");
+            }
+
+            if (string.IsNullOrWhiteSpace(opts.OutputFileName) && string.IsNullOrWhiteSpace(opts.CheckPassword))
+            {
+                errors.Add("--output-file is required when generating a wordlist.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(opts.OutputFileName) && !SafeFileName.IsMatch(opts.OutputFileName))
             {
                 errors.Add("--output-file may only contain letters, numbers, dots, underscores, and hyphens.");
             }
@@ -133,6 +148,24 @@ namespace TargetLex
             }
 
             return errors;
+        }
+
+        private static int RunPasswordCheck(string password, IReadOnlyList<string> candidates)
+        {
+            var exactMatches = new HashSet<string>(candidates, StringComparer.Ordinal);
+
+            Console.WriteLine();
+            if (exactMatches.Contains(password))
+            {
+                WriteStatus("[!] Targetable: this password matches a TargetLex generated pattern.", ConsoleColor.Red);
+                Console.WriteLine($"Matched candidate: {password}");
+                Console.WriteLine("Reason: it can be built from the supplied target details and selected leetspeak mode.");
+                return 1;
+            }
+
+            WriteStatus("[+] No direct TargetLex pattern match found.", ConsoleColor.Green);
+            Console.WriteLine("This is safer against this specific generated pattern set, but still use a long unique password.");
+            return 0;
         }
 
         private static IEnumerable<string> ApplyFilters(IEnumerable<string> candidates, Options opts)
